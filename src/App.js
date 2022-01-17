@@ -1,102 +1,54 @@
-import React, { Component } from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import Header from './components/Header'
 import Admin from './components/Admin'
 import Card from './components/Card'
-import recettes from './recettes'
 
-// firebase
-import app from './firebase'
-import {
-  getDatabase,
-  ref,
-  set,
-  push,
-  onValue,
-  off,
-  child,
-  update
-} from 'firebase/database'
+import withFirebase from './hoc/whithFirebase'
 
 // CSS
 import './App.css'
 
-const db = getDatabase(app)
+import ColorContext from './components/Color'
 
-class App extends Component {
-  state = {
-    pseudo: this.props.match.params.pseudo,
-    recettes: {}
-  }
+const App = ({
+  match,
+  recettes,
+  ajouterRecette,
+  majRecette,
+  supprimerRecette,
+  chargerExemple
+}) => {
+  const cards = Object.keys(recettes)
+    .map(key => <Card key={key} details={recettes[key]} />)
 
-  componentDidMount () {
-    this.dbRecettesRef = ref(db, `/${this.state.pseudo}/recettes`)
-    onValue(this.dbRecettesRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const recettes = snapshot.val()
-        this.setState({ recettes })
-      }
-    })
-  }
-
-  componentWillUnmount () {
-    off()
-  }
-
-  ajouterRecette = recette => {
-    const newRecetteKey = push(child(this.dbRecettesRef, 'recettes')).key
-    const updates = {}
-    updates[newRecetteKey] = recette
-    update(this.dbRecettesRef, updates)
-  }
-
-  majRecette = (key, newRecette) => {
-    const updates = {}
-    updates[key] = newRecette
-    update(this.dbRecettesRef, updates)
-  }
-
-  supprimerRecette = key => {
-    console.log(key)
-    const updates = {}
-    updates[key] = null
-    update(this.dbRecettesRef, updates)
-  }
-
-  chargerExemple = () => {
-    Object.keys(recettes).forEach(key => {
-      const newRecetteRef = push(this.dbRecettesRef)
-      set(newRecetteRef, recettes[key])
-        .catch((error) => {
-          console.log(error)
-        })
-    })
-  }
-
-  render () {
-    const cards = Object.keys(this.state.recettes)
-      .map(key => <Card key={key} details={this.state.recettes[key]} />)
-
-    return (
+  return (
+    <ColorContext>
       <div className='box'>
-        <Header pseudo={this.state.pseudo} />
+        <Header pseudo={match.params.pseudo} />
         <div className='cards'>
           {cards}
         </div>
         <Admin
-          pseudo={this.state.pseudo}
-          recettes={this.state.recettes}
-          ajouterRecette={this.ajouterRecette}
-          majRecette={this.majRecette}
-          chargerExemple={this.chargerExemple}
-          supprimerRecette={this.supprimerRecette}
+          pseudo={match.params.pseudo}
+          recettes={recettes}
+          ajouterRecette={ajouterRecette}
+          majRecette={majRecette}
+          chargerExemple={chargerExemple}
+          supprimerRecette={supprimerRecette}
         />
       </div>
-    )
-  }
+    </ColorContext>
+  )
 }
 
 App.propTypes = {
+  pseudo: PropTypes.string,
+  recettes: PropTypes.object,
+  ajouterRecette: PropTypes.func,
+  majRecette: PropTypes.func,
+  supprimerRecette: PropTypes.func,
+  chargerExemple: PropTypes.func,
   match: PropTypes.shape({
     params: PropTypes.shape({
       pseudo: PropTypes.string
@@ -104,4 +56,6 @@ App.propTypes = {
   })
 }
 
-export default App
+const WrappedComponent = withFirebase(App)
+
+export default WrappedComponent
